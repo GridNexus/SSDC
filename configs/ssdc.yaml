@@ -1,0 +1,99 @@
+image_root: '/data/yzf/pro_ject/data/PAB/'
+test_file: '/data/yzf/pro_ject/data/PAB/annotation/test/attr.json'
+# OOD test set
+#test_file: '/data/yzf/pro_ject/data/PAB/annotation/test/ucc.json'
+
+
+train_file:  [
+	'data/PAB/annotation/train/attr_0.json', 'data/PAB/annotation/train/attr_1.json',
+	'data/PAB/annotation/train/attr_2.json', 'data/PAB/annotation/train/attr_3.json',
+	'data/PAB/annotation/train/attr_4.json', 'data/PAB/annotation/train/attr_5.json',
+	'data/PAB/annotation/train/attr_6.json', 'data/PAB/annotation/train/attr_7.json',
+	'data/PAB/annotation/train/attr_8.json', 'data/PAB/annotation/train/attr_9.json',
+
+	'data/PAB/annotation/train/attr_10.json', 'data/PAB/annotation/train/attr_11.json',
+	'data/PAB/annotation/train/attr_12.json', 'data/PAB/annotation/train/attr_13.json',
+	'data/PAB/annotation/train/attr_14.json', 'data/PAB/annotation/train/attr_15.json',
+	'data/PAB/annotation/train/attr_16.json', 'data/PAB/annotation/train/attr_17.json',
+	'data/PAB/annotation/train/attr_18.json', 'data/PAB/annotation/train/attr_19.json',
+
+	'data/PAB/annotation/train/attr_20.json', 'data/PAB/annotation/train/attr_21.json',
+	'data/PAB/annotation/train/attr_22.json', 'data/PAB/annotation/train/attr_23.json',
+	'data/PAB/annotation/train/attr_24.json', 'data/PAB/annotation/train/attr_25.json',
+	'data/PAB/annotation/train/attr_26.json', 'data/PAB/annotation/train/attr_27.json',
+	'data/PAB/annotation/train/attr_28.json', 'data/PAB/annotation/train/attr_29.json',
+
+	'data/PAB/annotation/train/attr_30.json', 'data/PAB/annotation/train/attr_31.json',
+	'data/PAB/annotation/train/attr_32.json', 'data/PAB/annotation/train/attr_33.json',
+	'data/PAB/annotation/train/attr_34.json', 'data/PAB/annotation/train/attr_35.json',
+	'data/PAB/annotation/train/attr_36.json', 'data/PAB/annotation/train/attr_37.json',
+	'data/PAB/annotation/train/attr_38.json', 'data/PAB/annotation/train/attr_39.json',
+
+	'data/PAB/annotation/train/attr_40.json', 'data/PAB/annotation/train/attr_41.json',
+	'data/PAB/annotation/train/attr_42.json', 'data/PAB/annotation/train/attr_43.json',
+	'data/PAB/annotation/train/attr_44.json', 'data/PAB/annotation/train/attr_45.json',
+	'data/PAB/annotation/train/attr_46.json', 'data/PAB/annotation/train/attr_47.json',
+	'data/PAB/annotation/train/attr_48.json', 'data/PAB/annotation/train/attr_49.json',
+
+	'data/PAB/annotation/train/attr_50.json', 'data/PAB/annotation/train/attr_51.json',
+	'data/PAB/annotation/train/attr_52.json', 'data/PAB/annotation/train/attr_53.json',
+	'data/PAB/annotation/train/attr_54.json', 'data/PAB/annotation/train/attr_55.json',
+	'data/PAB/annotation/train/attr_56.json', 'data/PAB/annotation/train/attr_57.json',
+	'data/PAB/annotation/train/attr_58.json', 'data/PAB/annotation/train/attr_59.json',
+
+	'data/PAB/annotation/train/attr_60.json', 'data/PAB/annotation/train/attr_61.json',
+	'data/PAB/annotation/train/attr_62.json', 'data/PAB/annotation/train/attr_63.json',
+	'data/PAB/annotation/train/attr_64.json', 'data/PAB/annotation/train/attr_65.json',
+	'data/PAB/annotation/train/attr_66.json', 'data/PAB/annotation/train/attr_67.json',
+	'data/PAB/annotation/train/attr_68.json', 'data/PAB/annotation/train/attr_69.json',
+
+	'data/PAB/annotation/train/attr_70.json', 'data/PAB/annotation/train/attr_71.json',
+	'data/PAB/annotation/train/attr_72.json', 'data/PAB/annotation/train/attr_73.json',
+	'data/PAB/annotation/train/attr_74.json',
+]
+
+
+## Image Encoder
+vision_config: '/data/yzf/pro_ject/ARR1/CMP/configs/config_swinB.json'
+h: 224
+w: 224
+
+## Text Encoder
+text_config: '/data/yzf/pro_ject/ARR1/CMP/configs/config_bert.json'
+text_encoder: 'bert-base-uncased'
+
+
+## Training
+load_params: False
+load_pretrained: True
+
+max_words: 56
+max_tokens: 56
+eda_p: 1
+erasing_p: 0.6
+
+batch_size_train: 22
+batch_size_test: 22
+batch_size_test_text: 150
+
+embed_dim: 2048
+itc_dp: 0.5
+temp: 0.07
+label_smooth: 0.2
+
+## mlm loss
+mask_prob: 0.25
+max_masks: 10
+skipgram_prb: 0.2
+skipgram_size: 3
+mask_whole_word: True
+
+optimizer: {opt: adamW, lr: 1e-4, weight_decay: 0.01, lr_mult: 2}
+schedular: {sched: step, lr: 1e-4, epochs: 30, num_warmup_steps: 500}
+
+k_test: 128
+
+
+be_hard: True
+be_pose_img: True
+pose_conv: True

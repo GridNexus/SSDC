@@ -1,0 +1,1 @@
+python3 run.py --task "cmp" --evaluate --dist "f4" --output_dir "output/cmp_eval" --checkpoint "checkpoint/best.pth"

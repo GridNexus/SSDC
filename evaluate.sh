@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 python evaluate.py     --config configs/ssdc.yaml     --task ssdc     --output_dir evaluation_results/run_01     --checkpoint /data/yzf/pro_ject/CMP/checkpoint/best.pth
