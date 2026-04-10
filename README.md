@@ -29,7 +29,7 @@ This repository includes training, evaluation, and vLLM-based semantic refinemen
 - `evaluate.py`: standalone evaluation script.
 - `vllm_infer_SSDC.py`: stage-2 semantic verification and re-ranking.
 - `configs/ssdc.yaml`: SSDC stage-1 retriever configuration.
-- `run.sh`, `evaluate.sh`, `run_CMP.sh`: example shell launch scripts.
+- `run.sh`, `evaluate.sh`, `run_stage2.sh`: example shell launch scripts.
 
 ## Environment Setup
 
@@ -130,9 +130,9 @@ python vllm_infer_SSDC.py \
   --tag test
 ```
 
-You can also use shell template:
+You can also use the stage-2 shell template:
 
-- [run_CMP.sh](run_CMP.sh)
+- [run_stage2.sh](run_stage2.sh)
 
 ## Visuals
 

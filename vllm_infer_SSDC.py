@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from prettytable import PrettyTable
 
-# Ensure CMP modules are importable when running from ARR1/IRRA directory
+# Ensure CMP modules are importable when running from the repository root
 CMP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CMP'))
 if CMP_ROOT not in sys.path:
     sys.path.insert(0, CMP_ROOT)
@@ -32,14 +32,14 @@ from model import build_model, build_clip_model
 from utils.checkpoint import Checkpointer
 import os.path as op
 
-# ===== CMP embedding dependencies (added for CMP adaptation) =====
+# ===== CMP embedding dependencies =====
 from ruamel.yaml import YAML
 from models.model_search import Search
 from dataset import create_dataset, create_loader
 
 yaml = YAML(typ="safe")
 
-# ==================== 保持原有的辅助函数 ====================
+# ==================== Existing helper functions ====================
 def rank(similarity, q_pids, g_pids, max_rank=10, get_mAP=True):
     if get_mAP:
         indices = torch.argsort(similarity, dim=1, descending=True)
@@ -121,13 +121,13 @@ def print_rs(sims_dict, qids, pids, logger):
     table.custom_format["rSum"] = lambda f, v: f"{v:.2f}"
     logger.info('\n' + str(table))
 
-# ==================== 单卡 vLLM 类（核心修改）====================
+# ==================== Single-GPU vLLM class ====================
 class MLLMs(object):
     def __init__(self, model_dir):
         os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True,max_split_size_mb:256"
         
-        # 🔥 强制单卡
+        # Force single-GPU execution
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
         
         self.model_dir = model_dir  
@@ -138,8 +138,8 @@ class MLLMs(object):
         
         self.llm = LLM(
             model=model_dir,
-            tensor_parallel_size=1,  # 🔥 强制单GPU
-            gpu_memory_utilization=0.7,  # 保持原设置
+            tensor_parallel_size=1,
+            gpu_memory_utilization=0.7,
             max_num_seqs=256,
             max_model_len=1536,
             enforce_eager=True,
@@ -176,7 +176,7 @@ class MLLMs(object):
             outputs = self.llm.generate(inputs, sampling_params=sampling_params)
             results = [o.outputs[0].text for o in outputs]
             
-            # 清理
+            # Cleanup
             del inputs, outputs, image_data, messages, prompts
             torch.cuda.empty_cache()
             gc.collect()
@@ -184,7 +184,7 @@ class MLLMs(object):
             return results
             
         except Exception as e: 
-            print(f"❌ 生成失败:  {e}")
+            print(f"❌ Generation failed: {e}")
             torch.cuda.empty_cache()
             gc.collect()
             return [""] * len(questions)
@@ -209,12 +209,12 @@ class MLLMs(object):
             return results
             
         except Exception as e:
-            print(f"❌ 文本生成失败: {e}")
+            print(f"❌ Text generation failed: {e}")
             torch.cuda.empty_cache()
             gc.collect()
             return [""] * len(questions)
 
-# ==================== Dataset 类 ====================
+# ==================== Dataset class ====================
 class ImgDataset(Dataset):
     def __init__(self, images):  
         self.images = images
@@ -244,14 +244,14 @@ def collate(batch):
             batch_tensor_dict.update({k: list(v)})  
     return batch_tensor_dict
 
-# ==================== 批量推理函数 ====================
+# ==================== Batch inference functions ====================
 def batch_infer(llm, b_prompts, images, t=0.2):
     results = []
     n_samples = len(b_prompts)
     micro_batch = 8
     n_batches = (n_samples - 1) // micro_batch + 1
     
-    print(f"📊 总样本数: {n_samples}, 分成 {n_batches} 个批次")
+    print(f"📊 Total samples: {n_samples}, split into {n_batches} batches")
     
     for i in tqdm(range(n_batches), desc="Batch Inference"): 
         start = i * micro_batch
@@ -275,7 +275,7 @@ def batch_infer(llm, b_prompts, images, t=0.2):
                 time.sleep(0.5)
                 
         except Exception as e:
-            print(f"❌ Batch {i+1} 失败: {e}")
+            print(f"❌ Batch {i+1} failed: {e}")
             results += [""] * (end - start)
             torch.cuda.empty_cache()
             gc.collect()
@@ -288,7 +288,7 @@ def batch_infer_txt(llm, b_prompts, t=0.2):
     micro_batch = 16
     n_batches = (n_samples - 1) // micro_batch + 1
     
-    print(f"📊 文本样本数: {n_samples}, 分成 {n_batches} 个批次")
+    print(f"📊 Text samples: {n_samples}, split into {n_batches} batches")
     
     for i in tqdm(range(n_batches), desc="Text Inference"): 
         start = i * micro_batch
@@ -306,7 +306,7 @@ def batch_infer_txt(llm, b_prompts, t=0.2):
                 gc.collect()
                 
         except Exception as e:
-            print(f"❌ Text Batch {i+1} 失败: {e}")
+            print(f"❌ Text batch {i+1} failed: {e}")
             results += [""] * (end - start)
     
     return results
@@ -389,7 +389,7 @@ def extract_cmp_features(model, data_loader, tokenizer, device, config):
 
 @torch.no_grad()
 def compute_cmp_itm_scores(model, features, device, config):
-    """Standalone ITM logic borrowed from CMP实现 (single process version)."""
+    """Standalone ITM logic borrowed from the CMP implementation (single-process version)."""
     sims_matrix = features['sims_itc'].to(device)
     image_embeds = features['image_embeds'].to(device)
     text_embeds = features['text_embeds'].to(device)
@@ -542,10 +542,10 @@ Does this text accurately describe the image?  Answer STRICTLY with "Yes" or "No
     for i, v in enumerate(rs): 
         rrcaptions[rrpl_ids[i]] = v
 
-# ==================== 关键修改：使用预先提取的特征进行评估 ====================
+# ==================== Evaluate with cached features ====================
 def eval_with_cached_features(args, qids, pids, round, t, logger, rrcaptions, gt_indexs, sims_base, global_sims, 
                               qfeats_cached, gfeats_cached, vq_feats_cached, vg_feats_cached, base_model):
-    """使用缓存的 CLIP 特征进行评估，不需要重新加载模型"""
+    """Evaluate using cached CLIP features without reloading the model."""
     
     sims_ = sims_base.clone()
     
@@ -568,9 +568,9 @@ def eval_with_cached_features(args, qids, pids, round, t, logger, rrcaptions, gt
     print_rs(sims_dict, qids, pids, logger)
     return sims_
 
-# ==================== 主函数 ====================
+# ==================== Main function ====================
 
-# ==================== 主函数 ====================
+# ==================== Main function ====================
 if __name__ == '__main__':  
     parser = argparse.ArgumentParser(description="ICL Args")
     parser.add_argument("--base_model", default='RDE', type=str)
@@ -617,16 +617,16 @@ if __name__ == '__main__':
     with open(f'{base}config.json', 'w', encoding='utf-8') as f:
         json.dump(paras, f, ensure_ascii=False, indent=4)
     
-    # ==================== 🔥 阶段1：先提取 CMP 特征（vLLM 之前）====================
+    # ==================== Stage 1: extract CMP features before loading vLLM ====================
     logger.info("="*60)
-    logger.info("阶段1：提取 CMP 特征 (单卡模式) - 在 vLLM 加载之前")
+    logger.info("Stage 1: extract CMP features (single-GPU mode) before loading vLLM")
     logger.info("="*60)
     
     feature_cache = f'{base}/cmp_features.pt'
     device = torch.device("cuda:0" if torch.cuda. is_available() else "cpu")
 
     if not os.path.exists(feature_cache):
-        logger.info("使用 CMP Search 模型提取特征")
+        logger.info("Extracting features with the CMP Search model")
         cmp_config_loaded, tokenizer, cmp_model = load_cmp_components(
             cmp_config_path, cmp_checkpoint_path, device
         )
@@ -668,16 +668,16 @@ if __name__ == '__main__':
             feature_cache,
         )
 
-        logger.info(f"✅ CMP 特征已保存到:  {feature_cache}")
+        logger.info(f"✅ CMP features saved to:  {feature_cache}")
 
-        # 🔥 关键：完全释放 CMP 模型和显存
+        # Release the CMP model and free GPU memory
         del cmp_model, tokenizer, cmp_loader, cmp_dataset, feats
         torch.cuda.empty_cache()
         gc.collect()
-        logger.info("✅ CMP 模型已释放，显存已清空")
-        time.sleep(5)  # 等待显存完全释放
+        logger.info("✅ CMP model released and GPU memory cleared")
+        time.sleep(5)  # Wait for GPU memory to be fully released
     else:
-        logger.info(f"✅ 加载缓存特征: {feature_cache}")
+        logger.info(f"✅ Loaded cached features: {feature_cache}")
         cached = torch.load(feature_cache)
         qfeats = cached['qfeats']
         gfeats = cached['gfeats']
@@ -689,14 +689,14 @@ if __name__ == '__main__':
         if 'q_pids' in cached and 'g_pids' in cached:
             qids = cached['q_pids']
             pids = cached['g_pids']
-            logger.info("✅ 缓存中包含 q_pids / g_pids，直接复用")
+            logger.info("✅ Cache contains q_pids / g_pids; reusing them directly")
         else:
-            logger.info("⚠️ 缓存缺少 q_pids / g_pids，重新创建数据加载器以获取")
+            logger.info("⚠️ Cache is missing q_pids / g_pids; recreating the data loader to fetch them")
             _, cmp_dataset = create_dataset(cmp_config, evaluate=True)
             qids = torch.tensor(cmp_dataset. q_pids)
             pids = torch.tensor(cmp_dataset.g_pids)
 
-    # 初始化变量
+    # Initialize variables
     rcaptions = [[] for _ in captions]
     rrcaptions = copy.deepcopy(captions)
     gt_indexs = [-1 for _ in captions]
@@ -705,18 +705,18 @@ if __name__ == '__main__':
     pids = torch.tensor(pids)
     global_sims = sims_base.clone()
 
-    # 打印初始 CMP 基线指标
+    # Print the initial CMP baseline metrics
     base_rs = get_metrics(global_sims.cpu(), qids, pids, 'CMP-Base', False)
-    logger.info("初始 CMP 基线指标 (无 LLM): R1={:.2f} R5={:.2f} R10={:.2f} mAP={:.2f} mINP={:.2f} rSum={:.2f}".format(*base_rs[1:]))
+    logger.info("Initial CMP baseline metrics (no LLM): R1={:.2f} R5={:.2f} R10={:.2f} mAP={:.2f} mINP={:.2f} rSum={:.2f}".format(*base_rs[1:]))
     
     batch_size = 128
     
-    # ==================== 🔥 阶段2：现在才加载 vLLM（CMP 已释放）====================
+    # ==================== Stage 2: load vLLM after CMP has been released ====================
     logger. info("="*60)
-    logger.info("阶段2：加载 vLLM 模型 (单GPU模式)")
+    logger.info("Stage 2: load the vLLM model (single-GPU mode)")
     logger.info("="*60)
     
-    # 确保显存完全释放后再加载 vLLM
+    # Wait for GPU memory to be fully released before loading vLLM
     torch.cuda.empty_cache()
     gc.collect()
     time.sleep(2)
@@ -724,7 +724,7 @@ if __name__ == '__main__':
     llm = MLLMs(model_dir=args.model_dir)
     
     logger.info("="*60)
-    logger.info("阶段3：开始 In-Context Learning 迭代")
+    logger.info("Stage 3: start In-Context Learning iterations")
     logger.info("="*60)
     
     n_round = paras['round']
@@ -745,11 +745,11 @@ if __name__ == '__main__':
         round_time = end_round_time - start_round_time
         total_time = end_round_time - start_time
         
-        logger.info(f"✅ Round {round+1} 完成")
-        logger.info(f"  ⏱️  本轮耗时: {round_time:.0f}秒 ({round_time/60:.1f}分钟)")
-        logger.info(f"  ⏱️  累计耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)")
+        logger.info(f"✅ Round {round+1} completed")
+        logger.info(f"  ⏱️  Round time: {round_time:.0f}s ({round_time/60:.1f} min)")
+        logger.info(f"  ⏱️  Total elapsed: {total_time:.0f}s ({total_time/60:.1f} min)")
     
     total_time = time.time() - start_time
     logger.info("="*60)
-    logger.info(f"🎉 所有轮次完成！总耗时: {total_time:.0f}秒 ({total_time/60:.1f}分钟)")
+    logger.info(f"🎉 All rounds completed! Total elapsed: {total_time:.0f}s ({total_time/60:.1f} min)")
     logger.info("="*60)
