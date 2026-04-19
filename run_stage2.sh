@@ -16,9 +16,9 @@ export CUDA_VISIBLE_DEVICES=5
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 
 # 3. Path configuration
-embed_model_path=/data/yzf/pro_ject/ARR1/CMP/checkpoint
-model_dir=/data/yzf/pro_ject/model/Qwen3-VL-8B-sft
-root_dir=/data/yzf/pro_ject/data
+embed_model_path=/*/checkpoint
+model_dir=/*/Qwen3-VL-8B-sft
+root_dir=/*/data
 
 # 4. Hyperparameters
 xi=0.1
@@ -33,8 +33,8 @@ python vllm_infer_SSDC.py \
     --embed_model_path ${embed_model_path} \
     --source ${source} \
     --target ${target} \
-    --ssdc_checkpoint /data/yzf/pro_ject/ARR1/CMP/checkpoint/best.pth \
-    --ssdc_config /data/yzf/pro_ject/ARR1/CMP/checkpoint/configs.yaml \
+    --ssdc_checkpoint /data/*/best.pth \
+    --ssdc_config /data/*/configs.yaml \
     --model_dir ${model_dir} \
     --base_model RDE \
     --root_dir ${root_dir} \
